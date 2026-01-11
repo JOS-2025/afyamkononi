@@ -1,0 +1,8 @@
+{
+  "name": "AfyaMkononi",
+  "description": "AI-powered digital healthcare platform for Kenya and Africa, providing symptom guidance, virtual consultations, and health education.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

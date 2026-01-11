@@ -1,0 +1,27 @@
+
+AfyaMkononi System Architecture
+-------------------------------
+
+1. Frontend (Mobile-First Web App):
+   - React 18 / TypeScript / Tailwind CSS.
+   - PWA (Progressive Web App) support for offline reading.
+   - Low-data mode (compressed images and minimal JS bundles).
+
+2. Backend (RESTful API):
+   - Node.js / Express hosted on Railway/Render.
+   - JWT-based authentication using Phone + OTP (Twilio/SmsLeopard integration).
+   - Middleware for medical disclaimer injection.
+
+3. Database (Supabase / PostgreSQL):
+   - Real-time subscriptions for doctor-patient chat.
+   - Role-Based Access Control (RBAC).
+
+4. AI Layer (Gemini 3):
+   - 'gemini-3-flash-preview' for low latency health guidance.
+   - Centralized System Prompt for safety compliance.
+   - Streaming responses for conversational UI.
+
+5. External Integrations:
+   - SMS Gateways for OTP.
+   - M-Pesa API for consultation payments.
+   - Google Maps for local pharmacy/hospital referrals.
