@@ -19,8 +19,13 @@ app.use(cors());
 app.use(express.json());
 
 // --- AI Service (Backend Proxy) ---
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY
- });
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error("GEMINI_API_KEY is not set");
+}
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+
 
 app.post("/api/ai/symptoms", async (req: Request, res: Response) => {
   try {
