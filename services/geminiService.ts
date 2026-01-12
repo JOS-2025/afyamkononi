@@ -1,5 +1,4 @@
 
-import { GoogleGenAI, GenerateContentResponse, Content } from "@google/genai";
 import { ChatMessage, VitalsRecord } from "../types";
 
 const SYSTEM_PROMPT = `
@@ -24,7 +23,6 @@ export const getGeminiChatResponseStream = async (
   newMessage: string,
   onChunk: (text: string) => void
 ): Promise<{ fullText: string; isEmergency: boolean; links: { title: string; uri: string }[] }> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const contents: Content[] = [
     ...history.map(m => ({
@@ -67,7 +65,6 @@ export const getGeminiChatResponseStream = async (
 };
 
 export const analyzeVitals = async (vitals: VitalsRecord[]): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const dataString = vitals.map(v => `${v.type}: ${v.value}${v.unit} (${v.timestamp.toLocaleDateString()})`).join(', ');
   
   try {
