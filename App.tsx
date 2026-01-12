@@ -29,6 +29,12 @@ const App: React.FC = () => {
       setUser(u);
     }} />;
   }
+const handleWhatsAppClick = () => {
+  window.open(
+    "https://wa.me/254712345678?text=Jambo%20AfyaMkononi,%20I%20need%20help%20with%20my%20health...",
+    "_blank"
+  );
+};
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 pb-16 md:pb-0">
