@@ -38,7 +38,7 @@ app.post("/api/ai/symptoms", async (req: Request, res: Response) => {
       : [];
 
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-pro",
       contents: [
         ...safeHistory,
         {
