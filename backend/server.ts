@@ -22,21 +22,47 @@ app.use(express.json());
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY
  });
 
-app.post('/api/ai/symptoms', async (req: Request, res: Response) => {
+app.post("/api/ai/symptoms", async (req: Request, res: Response) => {
+  try {
     const { prompt, history } = req.body;
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: [...history, { role: 'user', parts: [{ text: prompt }] }],
-            config: {
-                systemInstruction: "You are AfyaMkononi AI. Provide healthcare guidance for Kenya. Never diagnose. Always add disclaimer."
-            }
-        });
-        res.json({ text: response.text });
-    } catch (error) {
-        res.status(500).json({ error: 'AI processing failed' });
+
+    if (!prompt || typeof prompt !== "string") {
+      return res.status(400).json({ error: "Prompt is required" });
     }
+
+    const safeHistory = Array.isArray(history)
+      ? history.map((m: any) => ({
+          role: m.role,
+          parts: [{ text: m.text }]
+        }))
+      : [];
+
+    const response = await ai.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: [
+        ...safeHistory,
+        {
+          role: "user",
+          parts: [{ text: prompt }]
+        }
+      ],
+      config: {
+        systemInstruction:
+          "You are AfyaMkononi AI. Provide healthcare guidance for Kenya. Never diagnose. Always include a medical disclaimer."
+      }
+    });
+
+    res.json({ text: response.text });
+  } catch (error: any) {
+    console.error("🔥 GEMINI BACKEND ERROR:", error);
+
+    res.status(500).json({
+      error: "AI processing failed",
+      details: error?.message || String(error)
+    });
+  }
 });
+
 
 // --- M-Pesa Integration (Daraja API) ---
 app.post('/api/payments/stkpush', async (req: Request, res: Response) => {
