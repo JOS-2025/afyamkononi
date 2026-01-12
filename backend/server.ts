@@ -42,32 +42,16 @@ app.post("/api/ai/symptoms", async (req: Request, res: Response) => {
         }))
       : [];
 
-    const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
-      contents: [
-        ...safeHistory,
-        {
-          role: "user",
-          parts: [{ text: prompt }]
-        }
-      ],
-      config: {
-        systemInstruction:
-          "You are AfyaMkononi AI. Provide healthcare guidance for Kenya. Never diagnose. Always include a medical disclaimer."
-      }
-    });
+  const result = await model.generateContent(
+  `You are AfyaMkononi AI. Provide healthcare guidance for Kenya.
+Never diagnose. Always include a medical disclaimer.
 
-    res.json({ text: response.text });
-  } catch (error: any) {
-    console.error("🔥 GEMINI BACKEND ERROR:", error);
+User message: ${prompt}`
+);
 
-    res.status(500).json({
-      error: "AI processing failed",
-      details: error?.message || String(error)
-    });
-  }
-});
+const text = result.response.text();
 
+res.json({ text });
 
 // --- M-Pesa Integration (Daraja API) ---
 app.post('/api/payments/stkpush', async (req: Request, res: Response) => {
