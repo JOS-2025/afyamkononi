@@ -1,121 +1,151 @@
-
 import { ChatMessage, VitalsRecord } from "../types";
 
-const SYSTEM_PROMPT = `
-You are AfyaMkononi AI, a specialized healthcare assistant for the Kenyan and African context.
+/**
+ * Base URL for the backend (Railway)
+ * This MUST be set in Vercel as VITE_API_BASE_URL
+ */
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
-ROLE & LIMITS:
-- You provide symptom guidance, health education, and first-aid advice.
-- You NEVER diagnose. You NEVER prescribe medication.
-- You MUST append a disclaimer at the end of every response: "Disclaimer: This is AI guidance, not a medical diagnosis. In emergencies, visit the nearest hospital or call 999/112."
-- For emergency symptoms, escalate IMMEDIATELY.
+/**
+ * Generic helper to call the AfyaMkononi backend AI proxy.
+ * All AI logic and API keys live on the server.
+ */
+async function callAiBackend(endpoint: string, payload: any): Promise<string> {
+  try {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
 
-KENYAN CONTEXT:
-- Suggest seeking the nearest Level 4 or Level 5 facility. Use Google Maps to find specific hospitals if the user asks.
-- Reference local health context: Malaria, Cholera, Linda Mama.
+    if (!response.ok) {
+      throw new Error(`Backend AI request failed: ${response.status}`);
+    }
 
-TOOLS:
-- You have access to Google Maps to find real hospitals and pharmacies in Kenya.
-`;
+    const data = await response.json();
+    return data.text || "";
+  } catch (error) {
+    console.error("Error communicating with AfyaMkononi Backend:", error);
+    throw error;
+  }
+}
 
+/**
+ * Chat / symptom analysis (frontend-safe).
+ * Streaming is simulated by returning the full text at once.
+ */
 export const getGeminiChatResponseStream = async (
   history: ChatMessage[],
   newMessage: string,
   onChunk: (text: string) => void
-): Promise<{ fullText: string; isEmergency: boolean; links: { title: string; uri: string }[] }> => {
-  
-  const contents: Content[] = [
-    ...history.map(m => ({
-      role: m.role,
-      parts: [{ text: m.text }]
-    })),
-    { role: 'user', parts: [{ text: newMessage }] }
-  ];
-
+): Promise<{
+  fullText: string;
+  isEmergency: boolean;
+  links: { title: string; uri: string }[];
+}> => {
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash', // Use 2.5 flash for Maps tool support
-      contents,
-      config: {
-        systemInstruction: SYSTEM_PROMPT,
-        tools: [{ googleMaps: {} }],
-        temperature: 0.5,
-      }
+    const fullText = await callAiBackend("/api/ai/symptoms", {
+      prompt: newMessage,
+      history: history.map(m => ({
+        role: m.role,
+        text: m.text
+      }))
     });
 
-    const fullText = response.text || "";
+    // Send text back to UI
     onChunk(fullText);
 
-    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-    const links = groundingChunks
-      .filter((chunk: any) => chunk.maps)
-      .map((chunk: any) => ({
-        title: chunk.maps.title,
-        uri: chunk.maps.uri
-      }));
+    // Simple emergency keyword detection
+    const upper = fullText.toUpperCase();
+    const isEmergency =
+      upper.includes("EMERGENCY") ||
+      upper.includes("IMMEDIATELY") ||
+      upper.includes("DANGER");
 
-    const isEmergency = fullText.includes("EMERGENCY DETECTED");
-    return { fullText, isEmergency, links };
-  } catch (error) {
-    console.error("Gemini Error:", error);
-    const errorMsg = "Samahani, I encountered an error. Please check your connection.";
+    return {
+      fullText,
+      isEmergency,
+      links: []
+    };
+  } catch {
+    const errorMsg =
+      "Samahani, I encountered an error. Please check your connection.";
     onChunk(errorMsg);
-    return { fullText: errorMsg, isEmergency: false, links: [] };
+
+    return {
+      fullText: errorMsg,
+      isEmergency: false,
+      links: []
+    };
   }
 };
 
-export const analyzeVitals = async (vitals: VitalsRecord[]): Promise<string> => {
-  const dataString = vitals.map(v => `${v.type}: ${v.value}${v.unit} (${v.timestamp.toLocaleDateString()})`).join(', ');
-  
+/**
+ * Analyze vitals via backend AI
+ */
+export const analyzeVitals = async (
+  vitals: VitalsRecord[]
+): Promise<string> => {
+  const vitalsText = vitals
+    .map(v => `${v.type}: ${v.value}${v.unit}`)
+    .join(", ");
+
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `User Vitals Data: ${dataString}. Provide a short, 20-word encouraging insight about these health trends for a Kenyan user.`,
+    return await callAiBackend("/api/ai/symptoms", {
+      prompt: `User vitals data: ${vitalsText}. Provide a short, encouraging health insight for a Kenyan user.`
     });
-    return response.text || "Keep monitoring your vitals. Afya ni mali!";
   } catch {
-    return "Your vitals show important trends. Maintain your routine!";
+    return "Your vitals show important trends. Afya kwanza!";
   }
 };
 
-export const generateMedicalSummary = async (doctorNotes: string): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+/**
+ * Generate a simplified medical summary
+ */
+export const generateMedicalSummary = async (
+  doctorNotes: string
+): Promise<string> => {
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Doctor's Notes: "${doctorNotes}"`,
-      config: {
-        systemInstruction: `You are AfyaMkononi AI assistant. Simplify medical notes for a Kenyan patient. Max 100 words. Format with Findings and Next Steps.`
-      }
+    return await callAiBackend("/api/ai/symptoms", {
+      prompt: `Simplify these doctor notes for a patient in clear, simple language: "${doctorNotes}"`
     });
-    return response.text || "Could not generate summary.";
-  } catch (error) {
-    return "Unable to simplify notes at this time.";
-  }
-};
-
-export const generateDailyHealthInsight = async (userName: string): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: `Generate a 25-word daily health insight for ${userName} in Kenya. Include one local Swahili word.`,
-    });
-    return response.text || "Stay hydrated today!";
   } catch {
-    return "Drink water and stay safe. Afya kwanza!";
+    return "Unable to simplify medical notes at this time.";
   }
 };
 
-export const generateArticleTip = async (title: string, content: string): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+/**
+ * Daily health insight
+ */
+export const generateDailyHealthInsight = async (
+  userName: string
+): Promise<string> => {
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Title: ${title}. Content: ${content.substring(0, 300)}. Catchy pro-tip with emoji.`,
+    return await callAiBackend("/api/ai/symptoms", {
+      prompt: `Generate a short daily health tip for ${userName} in Kenya (max 20 words).`
     });
-    return response.text || "Health is wealth.";
   } catch {
-    return "Prioritize health.";
+    return "Drink plenty of water and stay active today!";
+  }
+};
+
+/**
+ * Generate article tip
+ */
+export const generateArticleTip = async (
+  title: string,
+  content: string
+): Promise<string> => {
+  try {
+    return await callAiBackend("/api/ai/symptoms", {
+      prompt: `Article title: ${title}. Content preview: ${content.slice(
+        0,
+        200
+      )}. Provide one helpful health takeaway.`
+    });
+  } catch {
+    return "Stay informed for better health decisions.";
   }
 };
