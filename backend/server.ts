@@ -117,24 +117,6 @@ app.post("/api/ai/symptoms", async (req: Request, res: Response) => {
   }
 });
 
-      /* Save consultation to Supabase */
-      await supabase.from("consultations").insert({
-        user_id: req.user?.id ?? null,
-        prompt,
-        response: text,
-      });
-
-      res.json({ text });
-    } catch (error: any) {
-      console.error("🔥 GEMINI BACKEND ERROR:", error);
-      res.status(500).json({
-        error: "AI processing failed",
-        details: error?.message || String(error),
-      });
-    }
-  }
-);
-
 /* =========================
    MPESA (DARJA) ENDPOINTS
 ========================= */
