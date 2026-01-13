@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@supabase/supabase-js";
+import { agentOrchestrator } from "./agentOrchestrator";
 
 dotenv.config();
 
@@ -89,16 +90,31 @@ app.get("/health", (_req: Request, res: Response) => {
 /* =========================
    AI SYMPTOMS ENDPOINT
 ========================= */
-app.post(
-  "/api/ai/symptoms",
-  requireUser,
-  async (req: Request & { user?: any }, res: Response) => {
-    try {
-      const { prompt } = req.body;
+app.post("/api/ai/symptoms", async (req: Request, res: Response) => {
+  try {
+    const { prompt, history } = req.body;
 
-      if (!prompt || typeof prompt !== "string") {
-        return res.status(400).json({ error: "Prompt is required" });
-      }
+    if (!prompt) {
+      return res.status(400).json({ error: "Prompt is required" });
+    }
+
+    const userId = req.user?.id || "anonymous";
+
+    const result = await agentOrchestrator(
+      prompt,
+      userId,
+      history || []
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error("Agentic AI error:", error);
+    res.status(500).json({
+      error: "AI processing failed"
+    });
+  }
+});
+
 
       const result = await model.generateContent(
         `You are AfyaMkononi AI.
