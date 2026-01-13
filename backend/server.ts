@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@supabase/supabase-js";
-import { agentOrchestrator } from "./agentOrchestrator";
+import { agentOrchestrator } from "./agentOrchestrator.js";
 
 dotenv.config();
 
@@ -100,7 +100,7 @@ app.post("/api/ai/symptoms", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Prompt is required" });
     }
 
-    const userId = req.user?.id || "anonymous";
+    const userId = (req as any).user?.id || "anonymous";
 
     const result = await agentOrchestrator(
       prompt,
