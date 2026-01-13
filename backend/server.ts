@@ -87,9 +87,11 @@ app.get("/health", (_req: Request, res: Response) => {
   });
 });
 
-/* =========================
-   AI SYMPTOMS ENDPOINT
-========================= */
+/**
+ * AI SYMPTOMS ENDPOINT
+ * =========================
+ */
+
 app.post("/api/ai/symptoms", async (req: Request, res: Response) => {
   try {
     const { prompt, history } = req.body;
