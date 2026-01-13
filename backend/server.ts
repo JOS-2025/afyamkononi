@@ -115,19 +115,6 @@ app.post("/api/ai/symptoms", async (req: Request, res: Response) => {
   }
 });
 
-
-      const result = await model.generateContent(
-        `You are AfyaMkononi AI.
-Provide healthcare guidance for Kenya.
-Never diagnose.
-Always include a medical disclaimer.
-
-User message:
-${prompt}`
-      );
-
-      const text = result.response.text();
-
       /* Save consultation to Supabase */
       await supabase.from("consultations").insert({
         user_id: req.user?.id ?? null,
