@@ -1,8 +1,8 @@
 import { classifyIntent } from "./services/geminiService";
-import { runTriageAgent } from "./agents/triageAgent";
-import { runCareAgent } from "./agents/careAgent";
-import { runEscalationAgent } from "./agents/escalationAgent";
-import { runMemoryAgent } from "./agents/memoryAgent";
+import { runTriageAgent } from "./agents/triageAgent.js";
+import { runCareAgent } from "./agents/careAgent.js";
+import { runEscalationAgent } from "./agents/escalationAgent.js";
+import { runMemoryAgent } from "./agents/memoryAgent.js";
 import { 
   BackendResponse, 
   UrgencyLevel, 
